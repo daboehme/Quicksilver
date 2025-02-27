@@ -27,14 +27,15 @@
 #include "git_vers.hh"
 
 #ifdef USE_CALIPER
+#include <adiak.hpp>
 #include <caliper/cali.h>
 #include <caliper/cali-manager.h>
-#ifdef HAVE_MPI
-#include <caliper/cali-mpi.h>
+#if _OPENMP
+#include <omp.h>
 #endif
 #endif
 
-void setupCaliper();
+void setupCaliper(const Parameters&);
 void gameOver();
 void cycleInit( bool loadBalance );
 void cycleTracking(MonteCarlo* monteCarlo);
@@ -53,7 +54,7 @@ int main(int argc, char** argv)
    printParameters(params, cout);
 
 #ifdef USE_CALIPER
-   setupCaliper();
+   setupCaliper(params);
 
    cali::ConfigManager calimgr(params.simulationParams.caliperConfig.c_str());
 
@@ -73,9 +74,8 @@ int main(int argc, char** argv)
    const int nSteps = params.simulationParams.nSteps;
 
 #ifdef USE_CALIPER
-   CALI_CXX_MARK_LOOP_BEGIN(mainloop, "qs.mainloop");
+   CALI_CXX_MARK_LOOP_BEGIN(mainloop, "mainloop");
 #endif
-
    for (int ii=0; ii<nSteps; ++ii)
    {
 #ifdef USE_CALIPER
@@ -92,7 +92,6 @@ int main(int argc, char** argv)
             mcco->processor_info->num_processors,
             mcco->processor_info->comm_mc_world );
    }
-
 #ifdef USE_CALIPER
    CALI_CXX_MARK_LOOP_END(mainloop);
 #endif
@@ -119,18 +118,37 @@ int main(int argc, char** argv)
    return 0;
 }
 
-void setupCaliper()
+void setupCaliper(const Parameters& params)
 {
 #ifdef USE_CALIPER
-#ifdef HAVE_MPI
-   cali_mpi_init();
-#endif
-
-   cali_config_preset("CALI_LOG_VERBOSITY", "0");
    cali_config_preset("CALI_CALIPER_ATTRIBUTE_DEFAULT_SCOPE", "process");
 
-   cali_set_global_string_byname("qs.git_vers", GIT_VERS);
-   cali_set_global_string_byname("qs.git_hash", GIT_HASH);
+   adiak::value("git_version", GIT_VERS);
+   adiak::value("git_hash", GIT_HASH);
+   adiak::collect_all();
+
+#if _OPENMP
+   adiak::value("max_threads", omp_get_max_threads());
+#else
+   adiak::value("max_threads", 1);
+#endif
+#ifdef GPU_NATIVE
+   adiak::value("gpu_native", 1);
+#else
+   adiak::value("gpu_native", 0);
+#endif
+#ifdef HAVE_CUDA
+   adiak::value("have_cuda", 1);
+#else
+   adiak::value("have_cuda", 0);
+#endif
+#ifdef HAVE_HIP
+   adiak::value("have_hip", 1);
+#else
+   adiak::value("have_hip", 0);
+#endif
+
+   saveParametersInAdiak(params);
 #endif
 }
 

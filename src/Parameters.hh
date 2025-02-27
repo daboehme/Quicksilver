@@ -177,6 +177,7 @@ struct Parameters
 
 Parameters getParameters(int argc, char** argv);
 void printParameters(const Parameters& params, std::ostream& out);
+void saveParametersInAdiak(const Parameters& parms);
 
 std::ostream& operator<<(std::ostream& out, const SimulationParameters& pp);
 std::ostream& operator<<(std::ostream& out, const GeometryParameters& pp);

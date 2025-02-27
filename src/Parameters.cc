@@ -33,6 +33,10 @@
 #include "InputBlock.hh"
 #include "utilsMpi.hh"
 
+#ifdef USE_CALIPER
+#include <adiak.hpp>
+#endif
+
 using std::string;
 using std::ifstream;
 using std::make_pair;
@@ -92,6 +96,100 @@ Parameters getParameters(int argc, char** argv)
    supplyDefaults(params);
 
    return params;
+}
+
+void saveParametersInAdiak(const Parameters& pp)
+{
+#ifdef USE_CALIPER
+   adiak::value("dt", pp.simulationParams.dt);
+   adiak::value("fMax", pp.simulationParams.fMax);
+   adiak::value("inputFile", adiak::path(pp.simulationParams.inputFile));
+   adiak::value("energySpectrum", pp.simulationParams.energySpectrum);
+   adiak::value("boundaryCondition", pp.simulationParams.boundaryCondition);
+   adiak::value("loadBalance", pp.simulationParams.loadBalance);
+   adiak::value("cycleTimers", pp.simulationParams.cycleTimers);
+   adiak::value("debugThreads", pp.simulationParams.debugThreads);
+   adiak::value("lx", pp.simulationParams.lx);
+   adiak::value("ly", pp.simulationParams.ly);
+   adiak::value("lz", pp.simulationParams.lz);
+   adiak::value("nParticles", pp.simulationParams.nParticles);
+   adiak::value("batchSize", pp.simulationParams.batchSize);
+   adiak::value("nBatches", pp.simulationParams.nBatches);
+   adiak::value("nSteps", pp.simulationParams.nSteps);
+   adiak::value("nx", pp.simulationParams.nx);
+   adiak::value("ny", pp.simulationParams.ny);
+   adiak::value("nz", pp.simulationParams.nz);
+   adiak::value("seed", pp.simulationParams.seed);
+   adiak::value("xDom", pp.simulationParams.xDom);
+   adiak::value("yDom", pp.simulationParams.yDom);
+   adiak::value("zDom", pp.simulationParams.zDom);
+   adiak::value("eMax", pp.simulationParams.eMax);
+   adiak::value("eMin", pp.simulationParams.eMin);
+   adiak::value("nGroups", pp.simulationParams.nGroups);
+   adiak::value("lowWeightCutoff", pp.simulationParams.lowWeightCutoff);
+   adiak::value("bTally", pp.simulationParams.balanceTallyReplications);
+   adiak::value("fTally", pp.simulationParams.fluxTallyReplications);
+   adiak::value("cTally", pp.simulationParams.cellTallyReplications);
+   adiak::value("coralBenchmark", pp.simulationParams.coralBenchmark);
+   adiak::value("crossSectionsOut", pp.simulationParams.crossSectionsOut);
+
+   for (size_t i = 0; i < pp.geometryParams.size(); ++i) {
+      std::string prefix("geometry.");
+      prefix.append(std::to_string(i));
+      prefix.append(".");
+      const GeometryParameters& gp = pp.geometryParams[i];
+      adiak::value(prefix+"material", gp.materialName);
+      switch (gp.shape)
+      {
+        case GeometryParameters::BRICK:
+         adiak::value(prefix+"shape", "brick");
+         adiak::value(prefix+"xMax", gp.xMax);
+         adiak::value(prefix+"xMin", gp.xMin);
+         adiak::value(prefix+"yMax", gp.yMax);
+         adiak::value(prefix+"yMin", gp.yMin);
+         adiak::value(prefix+"zMax", gp.zMax);
+         adiak::value(prefix+"zMin", gp.zMin);
+         break;
+        case GeometryParameters::SPHERE:
+         adiak::value(prefix+"shape", "sphere");
+         adiak::value(prefix+"xCenter", gp.xCenter);
+         adiak::value(prefix+"yCenter", gp.yCenter);
+         adiak::value(prefix+"zCenter", gp.zCenter);
+         break;
+        default:
+         qs_assert(false);
+      }   
+   }
+
+   for (const auto& material : pp.materialParams) {
+      std::string prefix("material.");
+      prefix.append(material.first);
+      prefix.append(".");
+      adiak::value(prefix+"mass", material.second.mass);
+      adiak::value(prefix+"nIsotopes", material.second.nIsotopes);
+      adiak::value(prefix+"nReactions", material.second.nReactions);
+      adiak::value(prefix+"sourceRate", material.second.sourceRate);
+      adiak::value(prefix+"totalCrossSection", material.second.totalCrossSection);
+      adiak::value(prefix+"absorptionCrossSection", material.second.absorptionCrossSection);
+      adiak::value(prefix+"fissionCrossSection", material.second.fissionCrossSection);
+      adiak::value(prefix+"scatteringCrossSection", material.second.scatteringCrossSection);
+      adiak::value(prefix+"absorptionCrossSectionRatio", material.second.absorptionCrossSectionRatio);
+      adiak::value(prefix+"fissionCrossSectionRatio", material.second.fissionCrossSectionRatio);
+      adiak::value(prefix+"scatteringCrossSectionRatio", material.second.scatteringCrossSectionRatio);
+   }
+
+   for (const auto& csp : pp.crossSectionParams) {
+      std::string prefix("crossection.");
+      prefix.append(csp.first);
+      prefix.append(".");
+      adiak::value(prefix+"A", csp.second.aa);
+      adiak::value(prefix+"B", csp.second.bb);
+      adiak::value(prefix+"C", csp.second.cc);
+      adiak::value(prefix+"D", csp.second.dd);
+      adiak::value(prefix+"E", csp.second.ee);
+      adiak::value(prefix+"nuBar", csp.second.nuBar);   
+   }
+#endif
 }
 
 void printParameters(const Parameters& pp, ostream& out)

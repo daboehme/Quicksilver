@@ -49,18 +49,11 @@ class MC_Fast_Timer_Container
 {
 public:
     MC_Fast_Timer_Container()
-#ifdef USE_CALIPER
-        : cali_annotation("mc.timer", CALI_ATTR_SCOPE_PROCESS | CALI_ATTR_NESTED)
-#endif
         {} ; // constructor
     void Cumulative_Report(int mpi_rank, int num_ranks, MPI_Comm comm_world, uint64_t numSegments);
     void Last_Cycle_Report(int report_time, int mpi_rank, int num_ranks, MPI_Comm comm_world);
     void Clear_Last_Cycle_Timers();
     MC_Fast_Timer  timers[MC_Fast_Timer::Num_Timers];  // timers for various routines
-    
-#ifdef USE_CALIPER
-    cali::Annotation cali_annotation;
-#endif
     
 private:
     void Print_Cumulative_Heading(int mpi_rank);
@@ -102,9 +95,9 @@ extern const char *mc_fast_timer_names[MC_Fast_Timer::Num_Timers];
       #ifdef USE_CALIPER
          #define MC_FASTTIMER_START(timerIndex) \
              if (omp_get_thread_num() == 0) { \
+                 cali_begin_region(mc_fast_timer_names[timerIndex]); \
                  mcco->fast_timer->timers[timerIndex].startClock = std::chrono::high_resolution_clock::now(); \
-             } \
-             mcco->fast_timer->cali_annotation.begin(mc_fast_timer_names[timerIndex]);
+             }
 
          #define MC_FASTTIMER_STOP(timerIndex) \
              if ( omp_get_thread_num() == 0 ) { \
@@ -116,8 +109,8 @@ extern const char *mc_fast_timer_names[MC_Fast_Timer::Num_Timers];
                    std::chrono::duration_cast<std::chrono::microseconds> \
                    (mcco->fast_timer->timers[timerIndex].stopClock - mcco->fast_timer->timers[timerIndex].startClock).count(); \
                  mcco->fast_timer->timers[timerIndex].numCalls++;		\
-             } \
-             mcco->fast_timer->cali_annotation.end();
+                 cali_end_region(mc_fast_timer_names[timerIndex]); \
+             }
 
       #else // not defined USE_CALIPER
 
