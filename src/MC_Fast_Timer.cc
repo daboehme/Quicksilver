@@ -5,6 +5,10 @@
 #include "Globals.hh"
 #include "portability.hh"
 
+#ifdef USE_CALIPER
+#include <adiak.hpp>
+#endif
+
 const char *mc_fast_timer_names[MC_Fast_Timer::Num_Timers] =
 {
     "main",
@@ -101,6 +105,12 @@ void MC_Fast_Timer_Container::Cumulative_Report(int mpi_rank, int num_ranks, MPI
                         "Figure Of Merit",
                         (numSegments / (max_clock[cycleTracking_Index]*1e-6)),
                         "[Num Segments / Cycle Tracking Time]" );
+
+#ifdef USE_CALIPER
+        adiak::value("numSegments", numSegments);
+        adiak::value("CycleTrackingTime", max_clock[cycleTracking_Index]*1e-6);
+        adiak::value("FigureOfMerit", numSegments / (max_clock[cycleTracking_Index]*1e-6));
+#endif
     }
 }
 
